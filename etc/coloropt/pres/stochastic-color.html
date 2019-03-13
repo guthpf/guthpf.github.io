@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    border:1px solid #000000;
+    background-color: #ffffff;
+}
+</style>
+</head>
+<body onload="initialize()" onkeydown="keyDown(event)">
+<script>
+
+var viewport = {
+    start : function() {
+		this.deltax = 0.0;
+		this.deltay = 0.0;
+		this.scale = 1.0;
+	}
+}
+
+var interfaceState = {
+    start : function() {
+		this.visiblecount = 0;
+		this.animationtimestamp = 0;
+	}
+}
+
+
+var interfaceArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 640;
+        this.canvas.height = 480;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.frameNo = 0;
+        this.interval = setInterval(updateInterface, 20);
+        },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
+
+var images = [];
+
+var animation_data = {
+	start : function() {
+		this.dx = 0.0;
+		this.dy = 0.0;
+		this.scale = 1.0;
+		this.active = false;
+		
+		this.starttime = 0;
+		this.t_last = 0.0;
+		this.animation_duration = 300.0; //constant
+	}
+}
+
+function initialize() {
+	interfaceState.start();
+	viewport.start();
+	animation_data.start();
+
+	images.push(new component("point.png", 35.36, 34.0, 276.32, 375.0, 1.0, 640.0, 480.0, 22.0, 33.0, 1.0));
+	images.push(new component("target.png", 36.848484, 63.999998, 287.575758, 398.000001, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 36.0, 34.615384, 94.0, 160.615385, 0, 0, 0, 0, 0, 0));
+	images.push(new component("2.png", 42.0, 26.419355, 106.0, 178.516129, 0, 0, 0, 0, 0, 0));
+	images.push(new component("circle.png", 141.317829, 145.838832, 41.0, 104.160584, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 34.0, 32.692307, 81.0, 95.615385, 0, 0, 0, 0, 0, 0));
+	images.push(new component("1.png", 44.0, 27.677419, 91.0, 108.516129, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 36.8, 35.384615, 109.0, 224.615385, 0, 0, 0, 0, 0, 0));
+	images.push(new component("3.png", 47.0, 29.564516, 120.0, 244.516129, 0, 0, 0, 0, 0, 0));
+	images.push(new component("2.png", 45.157274, 28.405382, 122.546363, 243.489779, 0, 0, 0, 0, 0, 0));
+	images.push(new component("circle.png", 141.75, 146.28483, 56.25, 169.594585, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 36.75, 35.336539, 47.25, 238.153846, 0, 0, 0, 0, 0, 0));
+	images.push(new component("1.png", 37.147436, 23.366935, 36.205128, 262.633065, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 39.75, 38.221154, 173.25, 212.644231, 0, 0, 0, 0, 0, 0));
+	images.push(new component("3.png", 38.75, 24.375, 189.25, 206.633065, 0, 0, 0, 0, 0, 0));
+	images.push(new component("2.png", 38.89091, 24.463637, 190.250001, 205.633065, 0, 0, 0, 0, 0, 0));
+	images.push(new component("circle.png", 144.75, 149.380804, 120.25, 154.991801, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 39.75, 38.221154, 223.758549, 166.129983, 0, 0, 0, 0, 0, 0));
+	images.push(new component("1.png", 38.737179, 24.366935, 255.25, 171.633065, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 39.89, 38.355769, 123.272797, 254.644231, 0, 0, 0, 0, 0, 0));
+	images.push(new component("3.png", 41.916665, 26.366935, 112.250001, 276.633065, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid.png", 133.116787, 156.167312, 126.380363, 148.096372, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 40.495868, 38.938335, 165.710744, 152.565831, 0, 0, 0, 0, 0, 0));
+	images.push(new component("1.png", 42.975207, 27.032791, 166.53719, 139.65156, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 40.396694, 38.842975, 177.748933, 270.389144, 0, 0, 0, 0, 0, 0));
+	images.push(new component("3.png", 34.096206, 21.447613, 185.834143, 294.864016, 0, 0, 0, 0, 0, 0));
+	images.push(new component("2.png", 35.691883, 22.451346, 186.313482, 294.017309, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid.png", 133.841984, 157.018085, 134.530694, 209.452989, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 41.0, 39.423077, 132.0, 262.0, 0, 0, 0, 0, 0, 0));
+	images.push(new component("1.png", 42.102564, 26.483871, 136.897436, 286.516129, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 42.72, 41.076923, 230.28, 285.442308, 0, 0, 0, 0, 0, 0));
+	images.push(new component("3.png", 41.0, 25.790323, 254.0, 294.846774, 0, 0, 0, 0, 0, 0));
+	images.push(new component("2.png", 39.999999, 25.16129, 254.638691, 293.08871, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid.png", 155.800738, 182.779221, 177.347065, 209.220779, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 43.68, 42.0, 996.200138, 186.985661, 1.0, 640.0, 480.0, 115.864286, -622.011734, 0.996428));
+	images.push(new component("target.png", 45.999999, 79.894736, 1011.000138, 210.038293, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 44.079999, 42.384615, 840.000138, 117.601046, 0, 0, 0, 0, 0, 0));
+	images.push(new component("2.png", 48.999998, 30.82258, 857.000139, 135.574371, 0, 0, 0, 0, 0, 0));
+	images.push(new component("circle.png", 414.0, 427.244582, 653.000138, -74.63663, 1.0, 640.0, 480.0, 115.864286, -622.011734, 0.996428));
+	images.push(new component("point.png", 52.0, 50.0, 1018.000138, 66.985661, 0, 0, 0, 0, 0, 0));
+	images.push(new component("1.png", 52.0, 32.709678, 1043.000138, 59.630822, 1.0, 640.0, 480.0, 115.864286, -622.011734, 0.996428));
+	images.push(new component("point.png", 48.0, 46.153846, 660.000138, 170.908738, 0, 0, 0, 0, 0, 0));
+	images.push(new component("3.png", 54.0, 33.967742, 687.000138, 194.00179, 0, 0, 0, 0, 0, 0));
+	images.push(new component("objf.png", 477.788019, 214.403908, 628.173717, 98.069745, 1.0, 651.0, 490.0, 116.611458, -634.970312, 1.017187));
+	images.push(new component("circle.png", 413.297972, 426.520095, 473.078143, -17.926618, 1.0, 640.0, 480.0, 144.833033, -291.446626, 0.698055));
+	images.push(new component("point.png", 53.430849, 51.375817, 713.132988, -16.558585, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 50.759308, 48.807027, 600.928201, 354.734451, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid3.png", 405.664033, 289.298254, 479.373015, 63.124285, 1.0, 640.0, 480.0, 144.833033, -291.446626, 0.698055));
+	images.push(new component("point.png", 48.087765, 46.238236, 571.541233, 68.828024, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 45.416223, 43.669445, 777.250008, 278.492737, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid2.png", 408.746007, 227.751466, 480.708787, 79.590025, 1.0, 640.0, 480.0, 144.833033, -291.446626, 0.698055));
+	images.push(new component("point.png", 45.841634, 44.078494, 499.167577, 145.808414, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 45.841633, 44.078494, 811.463705, 223.16617, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid2.png", 412.441881, 229.81079, 625.364889, 117.708374, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 48.248319, 46.392614, 866.129853, 167.29668, 0, 0, 0, 0, 0, 0));
+	images.push(new component("point.png", 45.841634, 44.078494, 764.18952, 274.738008, 0, 0, 0, 0, 0, 0));
+	images.push(new component("ellipsoid2.png", 414.007252, 230.683008, 685.399213, 67.109191, 1.0, 640.0, 480.0, 144.833033, -291.446626, 0.698055));
+	images.push(new component("out00003.png", 44.00156, 408.33447, 567.713075, 579.036578, 1.0, 651.0, 490.0, -562.018697, -533.732561, 1.081679));
+	images.push(new component("out00004.png", 32.927927, 397.604716, 638.788526, 578.728283, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00005.png", 57.401731, 458.4166, 691.781964, 577.319937, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00006.png", 57.697262, 458.4166, 757.826457, 575.980657, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00007.png", 64.294221, 316.673031, 869.834544, 573.633683, 1.0, 651.0, 490.0, -569.114581, -905.528641, 1.098027));
+	images.push(new component("out00008.png", 102.194783, 458.416601, 942.397351, 575.050769, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00009.png", 101.020019, 458.416601, 1049.572597, 573.573357, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00010.png", 82.240852, 458.416601, 1153.183226, 571.580453, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00011.png", 125.988668, 458.4166, 1239.751955, 569.279254, 0, 0, 0, 0, 0, 0));
+	images.push(new component("out00012.png", 61.54302, 458.4166, 1369.219714, 569.279254, 0, 0, 0, 0, 0, 0));
+
+
+	interfaceArea.start();
+}
+
+function component(src, height, width, y, x, vp_available, vp_scrw, vp_scrh, vp_offsetx, vp_offsety, vp_scale) {
+	this.image = new Image();
+	this.image.src = src;
+	this.width = width;
+	this.height = height;
+	this.x = x;
+	this.y = y;
+	this.vp_available = vp_available;
+	this.vp_scrw = vp_scrw;
+	this.vp_scrh = vp_scrh;
+	this.vp_offsetx = vp_offsetx;
+	this.vp_offsety = vp_offsety;
+	this.vp_scale = vp_scale;
+	this.resizecanvas = document.createElement('canvas');
+    this.resizecanvas.width = this.image.width;
+    this.resizecanvas.height = this.image.height;
+	this.resizecanvas2 = document.createElement('canvas');
+    this.resizecanvas2.width = this.image.width;
+    this.resizecanvas2.height = this.image.height;
+    this.resizecanvasw = 0;
+    this.resizecanvash = 0;
+	this.update = function() {
+		if(!(this.resizecanvas.width > 0 && this.resizecanvas.height > 0 && this.resizecanvas2.width > 0 && this.resizecanvas2.height > 0)) {
+			this.resizecanvas.width = this.image.width;
+			this.resizecanvas.height = this.image.height;
+			this.resizecanvas2.width = this.image.width;
+			this.resizecanvas2.height = this.image.height;
+		}
+		ctx = interfaceArea.context;
+		drawx = viewport.deltax + viewport.scale * this.x;
+		drawy = viewport.deltay + viewport.scale * this.y;
+		draww = Math.ceil(viewport.scale * this.width);
+		drawh = Math.ceil(viewport.scale * this.height);
+		//If image is completely out of the canvas, no need to render
+		if(drawx > interfaceArea.canvas.width || drawy > interfaceArea.canvas.height || drawx + draww <= 0 || drawy + drawh <= 0)
+			return;
+		//If animation is active, never downscale image
+        if(animation_data.active) {
+        	//If pre-downscaled image is available
+        	if(this.resizecanvasw > 0 && this.resizecanvash > 0) {
+        		//Draw pre-downscaled image
+				ctx.drawImage(this.resizecanvas,
+				0, 0, this.resizecanvasw, this.resizecanvash,
+				drawx, drawy, draww, drawh);
+        	} else {
+        		//Draw original image
+				ctx.drawImage(this.image,
+				drawx, drawy, draww, drawh);
+        	}
+        } else {
+        	//If image is to be enlarged
+        	if(draww > this.image.width || drawh > this.image.height || !(draww > 0) || !(drawh > 0)) {
+        		//Invalidate pre-downscaled image
+				this.resizecanvasw = 0;
+				this.resizecanvash = 0;
+				//Draw original image
+				ctx.drawImage(this.image,
+				drawx, drawy, draww, drawh);
+        	} else {
+		    	//If pre-downscaled image is invalid
+		    	if(!(this.resizecanvasw == draww && this.resizecanvash == drawh)) {
+			    	//Compute downscaled image
+			    	direction = false;
+			    	lw = draww*2;
+			    	lh = drawh*2;
+			    	while(lw < this.image.width && lh < this.image.height) {
+						lw *= 2;
+						lh *= 2;
+						direction = !direction;
+			    	}
+					lw /= 2;
+					lh /= 2;
+			        rcc = this.resizecanvas.getContext('2d');
+			        rcc2 = this.resizecanvas2.getContext('2d');
+					if(direction) {
+				        rcc2.clearRect(0, 0, lw, lh);
+						rcc2.drawImage(this.image, 0, 0, lw, lh);
+					} else {
+				        rcc.clearRect(0, 0, lw, lh);
+						rcc.drawImage(this.image, 0, 0, lw, lh);
+					}
+					while(lw != draww) {
+						direction = !direction;
+						if(direction) {
+						    rcc2.clearRect(0, 0, lw/2, lh/2);
+							rcc2.drawImage(this.resizecanvas,
+							0, 0, lw, lh,
+							0, 0, lw/2, lh/2);
+						} else {
+						    rcc.clearRect(0, 0, lw/2, lh/2);
+							rcc.drawImage(this.resizecanvas2,
+							0, 0, lw, lh,
+							0, 0, lw/2, lh/2);
+						}
+						lw /= 2;
+						lh /= 2;
+					}
+					this.resizecanvasw = draww;
+					this.resizecanvash = drawh;
+		    	}
+				//Render downscaled image
+				ctx.drawImage(this.resizecanvas,
+				0, 0, draww, drawh,
+				drawx, drawy, draww, drawh);
+			}
+        }
+        /*ctx.drawImage(this.image,
+		viewport.deltax + viewport.scale * this.x,
+		viewport.deltay + viewport.scale * this.y,
+		viewport.scale * this.width,
+		viewport.scale * this.height);*/
+	}
+}
+
+function updateInterface() {
+	interfaceArea.clear();
+	animate();
+	for(i=0; i<interfaceState.visiblecount; i+=1)
+		images[i].update();
+}
+
+function keyDown(event) {
+	switch(event.code) {
+	case "ArrowLeft":
+	case "KeyA":
+		viewport.deltax += interfaceArea.canvas.width/10;
+		break;
+	case "ArrowRight":
+	case "KeyD":
+		viewport.deltax -= interfaceArea.canvas.width/10;
+		break;
+	case "ArrowUp":
+	case "KeyW":
+		viewport.deltay += interfaceArea.canvas.height/10;
+		break;
+	case "ArrowDown":
+	case "KeyS":
+		viewport.deltay -= interfaceArea.canvas.height/10;
+		break;
+	case "NumpadAdd":
+		{
+			oldscale = viewport.scale;
+			viewport.scale *= 1.1;
+			viewport.deltax = interfaceArea.canvas.width/2 -  (interfaceArea.canvas.width/2 - viewport.deltax)*viewport.scale/oldscale;
+			viewport.deltay = interfaceArea.canvas.height/2 -  (interfaceArea.canvas.height/2 - viewport.deltay)*viewport.scale/oldscale;
+		}
+		break;
+	case "NumpadSubtract":
+		{
+			oldscale = viewport.scale;
+			viewport.scale /= 1.1;
+			viewport.deltax = interfaceArea.canvas.width/2 -  (interfaceArea.canvas.width/2 - viewport.deltax)*viewport.scale/oldscale;
+			viewport.deltay = interfaceArea.canvas.height/2 -  (interfaceArea.canvas.height/2 - viewport.deltay)*viewport.scale/oldscale;
+		}
+		break;
+	case "Space":
+		interfaceState.visiblecount += 1;
+		if(interfaceState.visiblecount > images.length)
+			interfaceState.visiblecount = images.length;
+		else
+			viewPortAutoSet();
+		break;
+	case "Backspace":
+		interfaceState.visiblecount -= 1;
+		if(interfaceState.visiblecount < 0)
+			interfaceState.visiblecount = 0;
+		else
+			viewPortAutoSet();
+		break;
+	}
+}
+
+function animate() {
+	//Animate (if necessary)
+	if(animation_data.active) {
+		timenow = (new Date()).getTime();
+		t = (timenow - animation_data.starttime)/animation_data.animation_duration;
+		if(t >= 1) {
+			t = 1;
+			animation_data.active = false;
+		}
+		t = 1-t;
+		t = 3*Math.pow(t,2) - 2*Math.pow(t,3);
+		t = 1-t;
+		dt = t-animation_data.t_last;
+		if(Math.abs(animation_data.scale-1)<1e-8) {
+			viewport.deltax += animation_data.dx*dt;
+			viewport.deltay += animation_data.dy*dt;
+		} else {
+			scale = Math.pow(animation_data.scale, dt);
+			cx = - animation_data.dx / (animation_data.scale - 1);
+			cy = - animation_data.dy / (animation_data.scale - 1);
+			viewport.scale *= scale;
+			viewport.deltax = cx + scale*(viewport.deltax - cx);
+			viewport.deltay = cy + scale*(viewport.deltay - cy);
+		}
+		animation_data.t_last = t;
+	}
+}
+
+//Updates screen viewport using top item viewport data
+function viewPortAutoSet() {
+	scrw = interfaceArea.canvas.width;
+	scrh = interfaceArea.canvas.height;
+
+	if(interfaceState.visiblecount > 0) {
+		topitem = images[interfaceState.visiblecount-1];
+
+		use_custom_viewport = false;
+	
+		//Custom Viewport
+		if(topitem.vp_available) {
+			use_custom_viewport = true;
+			vpscale = topitem.vp_scale * Math.min(scrw/topitem.vp_scrw, scrh/topitem.vp_scrh);
+			vpx = scrw/2 - vpscale * (topitem.vp_scrw/2 - topitem.vp_offsetx) / topitem.vp_scale;
+			vpy = scrh/2 - vpscale * (topitem.vp_scrh/2 - topitem.vp_offsety) / topitem.vp_scale;
+			animation_data.active = true;
+			animation_data.scale = vpscale / viewport.scale;
+			animation_data.dx = vpx - viewport.deltax * animation_data.scale;
+			animation_data.dy = vpy - viewport.deltay * animation_data.scale;
+			if(!(animation_data.scale * (topitem.x * viewport.scale + viewport.deltax) + animation_data.dx >= 0 && 
+				animation_data.scale * (topitem.y * viewport.scale + viewport.deltay) + animation_data.dy >= 0 && 
+				animation_data.scale * ((topitem.width+topitem.x) * viewport.scale + viewport.deltax) + animation_data.dx < scrw &&
+				animation_data.scale * ((topitem.height+topitem.y) * viewport.scale + viewport.deltay) + animation_data.dy < scrh)) {
+				//Object will not fit inside viewport; abort animation
+				animation_data.active = false;
+				use_custom_viewport = false;
+			}
+		}
+
+		//Automatic Viewport
+		if(!use_custom_viewport)
+		{
+			animation_data.active = false;
+			animation_data.dx = 0;
+			animation_data.dy = 0;
+			animation_data.scale = 1.0;
+			marginx = ((topitem.width+topitem.x)-topitem.x)*viewport.scale/8.;
+			marginy = ((topitem.height+topitem.y)-topitem.y)*viewport.scale/8.;
+			if(((topitem.width+topitem.x) - topitem.x)*viewport.scale > scrw - 2*marginx) {
+				animation_data.active = true;
+				animation_data.scale = Math.min(animation_data.scale, scrw/(((topitem.width+topitem.x) - topitem.x)*viewport.scale + 2.0*marginx));
+			}
+			if(((topitem.height+topitem.y) - topitem.y)*viewport.scale > scrh - 2*marginy) {
+				animation_data.active = true;
+				animation_data.scale = Math.min(animation_data.scale, scrh/(((topitem.height+topitem.y) - topitem.y)*viewport.scale + 2.0*marginy));
+			}
+			marginx *= animation_data.scale;
+			marginy *= animation_data.scale;
+			if(animation_data.scale * ((topitem.width+topitem.x)*viewport.scale+viewport.deltax) > scrw - marginx) {
+				animation_data.active = true;
+				animation_data.dx = scrw - marginx - animation_data.scale * ((topitem.width+topitem.x)*viewport.scale+viewport.deltax);
+			}
+			if(animation_data.scale * (topitem.x*viewport.scale+viewport.deltax) < marginx) {
+				animation_data.active = true;
+				animation_data.dx = marginx - animation_data.scale * (topitem.x*viewport.scale+viewport.deltax);
+			}
+			if(animation_data.scale * ((topitem.height+topitem.y)*viewport.scale+viewport.deltay) > scrh - marginy) {
+				animation_data.active = true;
+				animation_data.dy = scrh - marginy - animation_data.scale * ((topitem.height+topitem.y)*viewport.scale+viewport.deltay);
+			}
+			if(animation_data.scale * (topitem.y*viewport.scale+viewport.deltay) < marginy) {
+				animation_data.active = true;
+				animation_data.dy = marginy - animation_data.scale * (topitem.y*viewport.scale+viewport.deltay);
+			}
+		}
+		if(animation_data.active) {
+			//If canvas was empty before adding this item, do not animate, just scale and scroll instantly
+			if(interfaceState.visiblecount == 1)
+				animation_data.starttime = (new Date()).getTime() - animation_data.animation_duration;
+			else
+				//Animation confirmed, reset animation clock
+				animation_data.starttime = (new Date()).getTime();
+			animation_data.t_last = 0;
+		}
+	}
+}
+
+</script>
+<br>
+<br> Press SPACE to show the next item
+<br> BACKSPACE to go back
+<br> Arrow keys or A/S/D/W to move viewport
+<br> Numpad +/- to zoom
+</body>
+</html>

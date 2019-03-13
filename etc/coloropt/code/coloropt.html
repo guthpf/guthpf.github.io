@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    border:1px solid #000000;
+    background-color: #ffffff;
+}
+</style>
+</head>
+<body onload="initialize()">
+<script>
+
+function sqr(x) {
+	return x*x;
+}
+
+var rgauss_state = false;
+var rgauss_v;
+
+function rgauss() {
+	rgauss_state = !rgauss_state;
+	if(rgauss_state) {
+		r = Math.sqrt(-2 * Math.log(Math.random()));
+		t = 2 * Math.PI * Math.random();
+		rgauss_v = r * Math.cos(t);
+		return r * Math.sin(t);
+	} else
+		return rgauss_v;
+}
+
+function rsphere(n, rad) {
+	ret = [];
+	len2 = 0;
+	for(i = 0; i < n; i++) {
+		ret.push(rgauss());
+		len2 += sqr(ret[i]);
+	}
+	normalize = rad/Math.sqrt(len2);
+	for(i = 0; i < n; i++)
+		ret[i] *= normalize;
+	return ret;
+}
+
+function fit(x) {
+	if(x<0)
+		return 0;
+	if(x>255)
+		return 255;
+	return x;
+}
+
+var interfaceArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 440;
+        this.canvas.height = 240;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.interval = setInterval(updateInterface, 20);
+        }
+}
+
+function initialize() {
+	interfaceArea.start();
+	restart();
+}
+
+var ndim = 3;
+var precond = new Array(ndim*ndim);
+var targ = new Array(ndim);
+var left = new Array(ndim);
+var mid = new Array(ndim);
+var right = new Array(ndim);
+
+function restart() {
+	precond = [];
+	for(i = 0; i < ndim*ndim; i++)
+		precond[i] = (i%(ndim+1) == 0)?1:0;
+	for(i = 0; i < ndim; i++) {
+		targ[i] = Math.random()*255;
+		mid[i] = Math.random()*255;
+	}
+	newiter();
+}
+
+var rad = 127;
+var us = new Array(ndim);
+var grad = new Array(ndim);
+
+function newiter() {
+	//Optimization
+	us = rsphere(ndim, 1);
+	for(i = 0; i < ndim; i++) {
+		grad[i] = 0;
+		for(j = 0; j < ndim; j++)
+			grad[i] += precond[i*ndim+j] * us[j];
+	}
+	for(i = 0; i < ndim; i++) {
+		right[i] = mid[i] - rad * grad[i];
+		left[i] = mid[i] + rad * grad[i];
+	}
+	//Enforce constraints
+	for(i = 0; i < ndim; i++) {
+		mid[i] = fit(mid[i]);
+		left[i] = fit(left[i]);
+		right[i] = fit(right[i]);
+	}
+}
+
+function button1() {
+	for(i = 0; i < ndim; i++)
+		mid[i] = left[i];
+	newiter();
+}
+
+function button2() {
+	a = 1 - 1/Math.sqrt(2);
+	for(i = 0; i < ndim; i++)
+		for(j = 0; j < ndim; j++)
+			precond[i*ndim + j] -= a * grad[i] * us[j];
+	newiter();
+}
+
+function button3() {
+	for(i = 0; i < ndim; i++)
+		mid[i] = right[i];
+	newiter();
+}
+
+function toHexa(x) {
+	s = Math.floor(x).toString(16);
+	if(s.length == 1)
+		return "0" + s
+	else
+		return s
+}
+
+function draw_rect(x1, x2, y1, y2, col) {
+	interfaceArea.context.fillStyle = "#" + toHexa(col[0]) + toHexa(col[1]) + toHexa(col[2]);
+	interfaceArea.context.fillRect(x1, y1, x2-x1, y2-y1);
+}
+
+function updateInterface() {
+    interfaceArea.context.clearRect(0, 0, interfaceArea.canvas.width, interfaceArea.canvas.height);
+	//Rendering
+	draw_rect(0, interfaceArea.canvas.width, 0, interfaceArea.canvas.height, targ);
+	draw_rect(70, 130, 100, 140, left);
+	draw_rect(190, 250, 100, 140, mid);
+	draw_rect(310, 370, 100, 140, right);
+}
+
+</script>
+<br>
+<button onclick="button1()">1</button>
+<button onclick="button2()">2</button>
+<button onclick="button3()">3</button>
+<br/>
+<br/>
+<button onclick="restart()">RESTART</button>
+</body>
+</html>
