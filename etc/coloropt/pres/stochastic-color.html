@@ -378,17 +378,25 @@ function mouseUp(event) {
 
 function mouseWheel(event) {
 	event.preventDefault();
+	let wheelx, wheely;
+	if(event.deltaX == 1 || event.deltaX == -1 || event.deltaY == 3 || event.deltaY == -3) {
+		//Firefox
+		wheelx = event.deltaX;
+		wheely = event.deltaY / 3;
+	} else {
+		//Chrome
+		wheelx = event.deltaX / 50;
+		wheely = event.deltaY / 50;
+	}
+	
 	if(event.ctrlKey) {
 		let oldscale = viewport.scale;
-		if (event.deltaY > 0)
-			viewport.scale /= 1.1;
-		else
-			viewport.scale *= 1.1;
+		viewport.scale *= Math.exp(-wheely/10);
 		viewport.deltax = event.offsetX -  (event.offsetX - viewport.deltax)*viewport.scale/oldscale;
 		viewport.deltay = event.offsetY -  (event.offsetY - viewport.deltay)*viewport.scale/oldscale;
 	} else {
-		viewport.deltax -= Math.sign(event.deltaX) * interfaceArea.canvas.width/10;
-		viewport.deltay -= Math.sign(event.deltaY) * interfaceArea.canvas.height/10;
+		viewport.deltax -= wheelx * interfaceArea.canvas.width/10;
+		viewport.deltay -= wheely * interfaceArea.canvas.height/10;
 	}
 }
 
