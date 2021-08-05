@@ -33,8 +33,8 @@ var g_movement = [];
 var interfaceArea = {
 		canvas : document.createElement("canvas"),
 		start : function() {
-				this.canvas.height = 640;
-				this.canvas.width = 480;
+				this.canvas.height = 480;
+				this.canvas.width = 360;
 				this.canvas.style.left = "0px";
 				this.context = this.canvas.getContext("2d");
 
@@ -103,7 +103,7 @@ function add_random(grid) {
 }
 
 function draw_grid() {
-	let DX = 400 / GRID_LENGTH;
+	let DX = 360 / GRID_LENGTH;
 	let DY = DX;
 	let DR = (DX**2 + DY**2)**.5 / 4;
 	let X0 = interfaceArea.canvas.width/2-2*DX;
@@ -401,9 +401,9 @@ function touch_end(evt) {
 				let ady = Math.abs(dy);
 				if (Math.max(adx, ady) > 50) {
 					if (adx > ady) {
-						success = try_update(g_grid, (adx > 0 ? 1 : -1), 0, g_movement, g_new_grid);
+						success = try_update(g_grid, (dx > 0 ? 1 : -1), 0, g_movement, g_new_grid);
 					} else {
-						success = try_update(g_grid, 0, (ady > 0 ? 1 : -1), g_movement, g_new_grid);
+						success = try_update(g_grid, 0, (dy > 0 ? 1 : -1), g_movement, g_new_grid);
 					}
 					if (success) {
 						start_animation();
