@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+html, body {
+		margin: 0;
+		padding: 0;
+		background-color: #ffffff;
+		line-height: 0;
+}
+canvas {
+		background-color: #ffffff;
+		border: 0;
+}
+</style>
+</head>
+<body onload="initialize()" onkeydown="keyDown(event)">
+<script>
+
+"use strict";
+
+const GRID_LENGTH = 4;
+const PROB_2 = 0.5;
+
+var g_animation_start = 0.0;
+var g_animation_timer = 1.0;
+
+var g_grid = [];
+var g_new_grid = [];
+var g_movement = [];
+
+var interfaceArea = {
+		canvas : document.createElement("canvas"),
+		start : function() {
+				this.canvas.height = 480;
+				this.canvas.width = 640;
+				this.canvas.style.left = "0px";
+				this.context = this.canvas.getContext("2d");
+				
+				let ct = document.createElement('center');
+				ct.appendChild(this.canvas);
+				document.body.appendChild(ct);
+				this.interval = setInterval(updateInterface, 10);
+		},
+		clear : function() {
+				this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		}
+}
+
+function reset_puzzle() {
+	g_grid = [];
+	g_new_grid = [];
+	g_movement = [];
+	init_grid(g_grid);
+	init_grid(g_new_grid);
+	init_grid(g_movement);
+	add_random(g_grid);
+	add_random(g_grid);
+}
+
+function initialize() {
+	interfaceArea.start();
+	reset_puzzle();
+}
+
+function init_grid(grid) {
+	for (let i = 0; i < GRID_LENGTH*GRID_LENGTH; i++) {
+		grid.push(0);
+	}
+}
+
+function unif() {
+	return Math.random();
+}
+
+function add_random(grid) {
+	let num_empty = 0;
+	for (let i = 0; i < GRID_LENGTH*GRID_LENGTH; i++) {
+		if (grid[i] == 0) {
+			num_empty++;
+		}
+	}
+	let selected = Math.floor(unif() * num_empty);
+	for (let i = 0; i < GRID_LENGTH*GRID_LENGTH; i++) {
+		if (grid[i] == 0) {
+			if (selected == 0) {
+				if (unif() < PROB_2) {
+					grid[i] = 2;
+				} else {
+					grid[i] = 1;
+				}
+				break;
+			} else {
+				selected--;
+			}
+		}
+	}
+}
+
+function draw_grid() {
+	let DX = 400 / GRID_LENGTH;
+	let DY = DX;
+	let DR = (DX**2 + DY**2)**.5 / 4;
+	let X0 = 640/2-2*DX;
+	let Y0 = 480/2-2*DY;
+	let ctx = interfaceArea.context;
+	for(let i = 0; i <= GRID_LENGTH; i++) {
+		ctx.beginPath();
+		ctx.moveTo(X0 + i * DX,
+		           Y0);
+		ctx.lineTo(X0 + i * DX,
+		           Y0 + GRID_LENGTH * DY);
+		ctx.closePath();
+		ctx.stroke();
+
+		ctx.beginPath();
+		ctx.moveTo(X0,
+		           Y0 + i * DY);
+		ctx.lineTo(X0 + GRID_LENGTH * DX,
+		           Y0 + i * DY);
+		ctx.closePath();
+		ctx.stroke();
+	}
+	for(let i = 0; i < GRID_LENGTH; i++) {
+		for(let j = 0; j < GRID_LENGTH; j++) {
+			let k = i*GRID_LENGTH + j;
+			let n = g_grid[k];
+			if (n != 0) {
+				let x, y;
+				if (g_animation_timer == 1.0) {
+					x = X0 + j * DX;
+					y = Y0 + i * DY;
+				} else {
+					let x1 = X0 + j * DX;
+					let y1 = Y0 + i * DY;
+					let x2 = X0 + (g_movement[k] % GRID_LENGTH) * DX;
+					let y2 = Y0 + Math.floor(g_movement[k] / GRID_LENGTH) * DY;
+					x = x1 + g_animation_timer * (x2-x1);
+					y = y1 + g_animation_timer * (y2-y1);
+				}
+				let textcol;
+				let ax = x + DX/2;
+				let ay = y + DY/2;
+				switch(n) {
+				case 1:
+					ctx.fillStyle = "#f0f0ff";
+					textcol = "#000000";
+					break;
+				case 2:
+					ctx.fillStyle = "#ffffc0";
+					textcol = "#000000";
+					break;
+				case 4:
+					ctx.fillStyle = "#ffa0ff";
+					textcol = "#000000";
+					break;
+				case 8:
+					ctx.fillStyle = "#ffff80";
+					textcol = "#000000";
+					break;
+				case 16:
+					ctx.fillStyle = "#c0c0ff";
+					textcol = "#000000";
+					break;
+				case 32:
+					ctx.fillStyle = "#ffff00";
+					textcol = "#000000";
+					break;
+				case 64:
+					ctx.fillStyle = "#ff8000";
+					textcol = "#000000";
+					break;
+				case 128:
+					ctx.fillStyle = "#ff4000";
+					textcol = "#ffffff";
+					break;
+				case 256:
+					ctx.fillStyle = "#0080ff";
+					textcol = "#ffffff";
+					break;
+				case 512:
+					ctx.fillStyle = "#ff80ff";
+					textcol = "#000000";
+					break;
+				case 1024:
+					ctx.fillStyle = "#c000c0";
+					textcol = "#ffffff";
+					break;
+				case 2048:
+					ctx.fillStyle = "#c00000";
+					textcol = "#ffffff";
+					break;
+				default:
+					ctx.fillStyle = "#000000";
+					textcol = "#ffffff";
+					break;
+				}
+				switch(n) {
+				case 1:
+				case 2:
+				case 4:
+				case 8:
+					ctx.font = "48px serif";
+					ax -= 16;
+					ay += 16;
+					break;
+				case 16:
+				case 32:
+				case 64:
+					ctx.font = "36px serif";
+					ax -= 24;
+					ay += 12;
+					break;
+				case 128:
+				case 256:
+				case 512:
+					ctx.font = "24px serif";
+					ax -= 24;
+					ay += 8;
+					break;
+				default:
+					ctx.font = "18px serif";
+					ax -= 24;
+					ay += 6;
+					break;
+				}
+				ctx.beginPath();
+				ctx.arc(x + DX/2, y + DY/2, DR, 0, 2 * Math.PI);
+				ctx.closePath();
+				ctx.fill();
+				ctx.fillStyle = textcol;
+				ctx.fillText("" + n, ax, ay);
+			}
+		}
+	}
+}
+
+function updateInterface() {
+	interfaceArea.clear();
+	if (g_animation_timer < 1.0) {
+		let timenow = (new Date()).getTime();
+		g_animation_timer = (timenow - g_animation_start) / 125.0;
+		if (g_animation_timer >= 1.0) {
+			//Update animation variables
+			g_animation_timer = 1.0;
+			
+			//Update grid
+			g_grid = g_new_grid;
+			g_new_grid = [];
+			init_grid(g_new_grid);
+			add_random(g_grid);
+		}
+	}
+	draw_grid();
+}
+
+function try_update(grid, dx, dy, movement, new_grid) {
+	let couple = [];
+	for (let i = 0; i < GRID_LENGTH*GRID_LENGTH; i++) {
+		new_grid[i] = grid[i]; //grid after movement
+		movement[i] = i;       //where i moves to in the new grid
+		couple.push(-1);       //if i is result of a merger, where the farthest cell came from
+	}
+	let delta = dx + dy*GRID_LENGTH;
+	let orientation = (delta > 0);
+	let success = false;
+	//Search for mergers
+	//Guarantees no double mergers
+	for(let i = (orientation?GRID_LENGTH*GRID_LENGTH-1:0);
+	    (orientation?(i >= 0):(i < GRID_LENGTH*GRID_LENGTH));
+	    i += (orientation?-1:1)) {
+		if (new_grid[i] != 0) {
+			let limj = (dx == 0)?
+			    (orientation?0:GRID_LENGTH*GRID_LENGTH):
+			    ((Math.floor(i/GRID_LENGTH) + (orientation?0:1))*GRID_LENGTH);
+			for(let j = i - delta; (orientation?(j >= limj):(j < limj)); j -= delta) {
+				if (new_grid[j] != 0) {
+					if (new_grid[j] == new_grid[i]) {
+						success = true;
+						new_grid[j] = 0;
+						new_grid[i] *= 2;
+						movement[j] = i;
+						couple[i] = j;
+					}
+					break;
+				}
+			}
+		}
+	}
+	//Search for empty spaces
+	for(let i = (orientation?GRID_LENGTH*GRID_LENGTH-1:0);
+	    (orientation?(i >= 0):(i < GRID_LENGTH*GRID_LENGTH));
+	    i += (orientation?-1:1)) {
+		if (new_grid[i] == 0) {
+			let limj = (dx == 0)?
+			    (orientation?0:GRID_LENGTH*GRID_LENGTH):
+			    ((Math.floor(i/GRID_LENGTH) + (orientation?0:1))*GRID_LENGTH);
+			for(let j = i - delta; (orientation?(j >= limj):(j < limj)); j -= delta) {
+				if (new_grid[j] != 0) {
+					new_grid[i] = new_grid[j];
+					new_grid[j] = 0;
+					if (couple[j] != -1) {
+						movement[couple[j]] = i;
+					}
+					movement[j] = i;
+					success = true;
+					break;
+				}
+			}
+		}
+	}
+	return success;
+}
+
+function start_animation() {
+	g_animation_start = (new Date()).getTime();
+	g_animation_timer = 0.0;
+}
+
+function keyDown(event) {
+	if (g_animation_timer == 1.0) {
+		let success = false;
+		switch(event.code) {
+		case "ArrowLeft":
+		case "KeyA":
+			success = try_update(g_grid, -1, 0, g_movement, g_new_grid);
+			break;
+		case "ArrowRight":
+		case "KeyD":
+			success = try_update(g_grid, 1, 0, g_movement, g_new_grid);
+			break;
+		case "ArrowUp":
+		case "KeyW":
+			success = try_update(g_grid, 0, -1, g_movement, g_new_grid);
+			break;
+		case "ArrowDown":
+		case "KeyS":
+			success = try_update(g_grid, 0, 1, g_movement, g_new_grid);
+			break;
+		case "KeyR":
+			reset_puzzle();
+			break;
+		}
+		if (success) {
+			start_animation();
+		}
+	}
+}
+
+</script>
+</body>
+</html>	
