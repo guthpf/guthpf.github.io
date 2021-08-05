@@ -33,11 +33,15 @@ var g_movement = [];
 var interfaceArea = {
 		canvas : document.createElement("canvas"),
 		start : function() {
-				this.canvas.height = 480;
-				this.canvas.width = 640;
+				this.canvas.height = 640;
+				this.canvas.width = 480;
 				this.canvas.style.left = "0px";
 				this.context = this.canvas.getContext("2d");
-				
+
+				this.canvas.addEventListener("touchstart", touch_start, false);
+				this.canvas.addEventListener("touchcancel", touch_cancel, false);
+				this.canvas.addEventListener("touchend", touch_end, false);
+
 				let ct = document.createElement('center');
 				ct.appendChild(this.canvas);
 				document.body.appendChild(ct);
@@ -102,8 +106,8 @@ function draw_grid() {
 	let DX = 400 / GRID_LENGTH;
 	let DY = DX;
 	let DR = (DX**2 + DY**2)**.5 / 4;
-	let X0 = 640/2-2*DX;
-	let Y0 = 480/2-2*DY;
+	let X0 = interfaceArea.canvas.width/2-2*DX;
+	let Y0 = interfaceArea.canvas.height/2-2*DY;
 	let ctx = interfaceArea.context;
 	for(let i = 0; i <= GRID_LENGTH; i++) {
 		ctx.beginPath();
@@ -344,6 +348,70 @@ function keyDown(event) {
 		}
 		if (success) {
 			start_animation();
+		}
+	}
+}
+
+var g_ongoing_touches = [];
+
+function copy_touch({ identifier, pageX, pageY }) {
+	return { identifier, pageX, pageY };
+}
+
+function find_ongoing_touch_by_id(idToFind) {
+	for (let i = 0; i < g_ongoing_touches.length; i++) {
+		let id = g_ongoing_touches[i].identifier;
+		if (id == idToFind) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+function touch_start(evt) {
+	evt.preventDefault();
+	let touches = evt.changedTouches;
+	for (let i = 0; i < touches.length; i++) {
+		g_ongoing_touches.push(copy_touch(touches[i]));
+	}
+}
+
+function touch_cancel(evt) {
+	evt.preventDefault();
+	let touches = evt.changedTouches;
+
+	for (let i = 0; i < touches.length; i++) {
+		let idx = find_ongoing_touch_by_id(touches[i].identifier);
+		//Remove from list
+		g_ongoing_touches.splice(idx, 1);
+	}
+}
+
+function touch_end(evt) {
+	evt.preventDefault();
+	let touches = evt.changedTouches;
+	for (let i = 0; i < touches.length; i++) {
+		let idx = find_ongoing_touch_by_id(touches[i].identifier);
+		if (idx >= 0) {
+			if (g_animation_timer == 1.0) {
+				let success = false;
+				let dx = touches[i].pageX - g_ongoing_touches[idx].pageX;
+				let dy = touches[i].pageY - g_ongoing_touches[idx].pageY;
+				let adx = Math.abs(dx);
+				let ady = Math.abs(dy);
+				if (Math.max(adx, ady) > 50) {
+					if (adx > ady) {
+						success = try_update(g_grid, (adx > 0 ? 1 : -1), 0, g_movement, g_new_grid);
+					} else {
+						success = try_update(g_grid, 0, (ady > 0 ? 1 : -1), g_movement, g_new_grid);
+					}
+					if (success) {
+						start_animation();
+					}
+				}
+			}
+			//Remove from list
+			g_ongoing_touches.splice(idx, 1);
 		}
 	}
 }
