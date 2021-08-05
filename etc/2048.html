@@ -126,6 +126,8 @@ function draw_grid() {
 		ctx.closePath();
 		ctx.stroke();
 	}
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
 	for(let i = 0; i < GRID_LENGTH; i++) {
 		for(let j = 0; j < GRID_LENGTH; j++) {
 			let k = i*GRID_LENGTH + j;
@@ -206,31 +208,23 @@ function draw_grid() {
 				case 4:
 				case 8:
 					ctx.font = "48px serif";
-					ax -= 16;
-					ay += 16;
 					break;
 				case 16:
 				case 32:
 				case 64:
 					ctx.font = "36px serif";
-					ax -= 24;
-					ay += 12;
 					break;
 				case 128:
 				case 256:
 				case 512:
 					ctx.font = "24px serif";
-					ax -= 24;
-					ay += 8;
 					break;
 				default:
 					ctx.font = "18px serif";
-					ax -= 24;
-					ay += 6;
 					break;
 				}
 				ctx.beginPath();
-				ctx.arc(x + DX/2, y + DY/2, DR, 0, 2 * Math.PI);
+				ctx.arc(ax, ay, DR, 0, 2 * Math.PI);
 				ctx.closePath();
 				ctx.fill();
 				ctx.fillStyle = textcol;
@@ -398,7 +392,7 @@ function touch_end(evt) {
 				let dy = touches[i].pageY - g_ongoing_touches[idx].pageY;
 				let adx = Math.abs(dx);
 				let ady = Math.abs(dy);
-				if (Math.max(adx, ady) > 25) {
+				if (Math.max(adx, ady) > 0) {
 					if (adx > ady) {
 						success = try_update(g_grid, (dx > 0 ? 1 : -1), 0, g_movement, g_new_grid);
 					} else {
