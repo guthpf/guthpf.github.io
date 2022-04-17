@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<body onload="initialize()" onkeypress="keyPressed(event)" onkeyup="keyUp(event)">
+<script>
+
+"use strict";
+
+function encode_uint8(x) {
+  return String.fromCharCode(x);
+}
+
+function stop(key) {
+  key.pressed = false;
+}
+
+function play(key) {
+  key.audio[key.use_audio].play();
+  key.use_audio = (key.use_audio+1) % key.audio.length;
+  key.pressed = true;
+}
+
+function keyPressed(e) {
+  if(audios.hasOwnProperty(e.key)) {
+    play(audios[e.key]);
+  }
+}
+
+function keyUp(e) {
+  if(audios.hasOwnProperty(e.key)) {
+    stop(audios[e.key]);
+  }
+}
+
+function encode_uint16(x) {
+  return String.fromCharCode(x & 0xff) + String.fromCharCode(x >> 8);
+}
+
+function encode_sint16(x) {
+  return (x < 0) ? encode_uint16(x+0x10000) : encode_uint16(x);
+}
+
+function encode_uint32(x) {
+  return (
+    String.fromCharCode(x & 0xff) + 
+    String.fromCharCode((x >> 8) & 0xff) +
+    String.fromCharCode((x >> 16) & 0xff) +
+    String.fromCharCode((x >> 24) & 0xff)
+  );
+}
+
+var canvas;
+var ctx;
+var audios = {};
+var use_audio = {};
+
+function generate_audio(note) {
+  const NUMCHANNELS = 2;
+  const SAMPLESIZE = 2;
+  const FRAMERATE = 44100;
+  let length_secs = 1;
+
+  let FRAMESIZE = SAMPLESIZE * NUMCHANNELS;
+  let DATARATE = FRAMERATE * FRAMESIZE;
+  let data_size = length_secs * DATARATE;
+  let num_samples = FRAMERATE * length_secs;
+
+  let output = "";
+  output += "RIFF";
+  output += encode_uint32(data_size + 36);
+  output += "WAVEfmt ";
+  output += encode_uint32(16);
+  output += encode_uint16(1);
+  output += encode_uint16(NUMCHANNELS);
+  output += encode_uint32(FRAMERATE);
+  output += encode_uint32(DATARATE);
+  output += encode_uint16(FRAMESIZE);
+  output += encode_uint16(SAMPLESIZE*8);
+  output += "data";
+  output += encode_uint32(data_size);
+
+  let volume = 1;     // 1=100%
+  let halflife = .25; // secs
+  let warmup = 0.01;  // secs
+
+  let vol = 0x8000 / (2**(note/12));
+  let angfreq = 2 * Math.PI * (2**((note-21)/12)) * 440 / FRAMERATE;
+  let att = -Math.log(2) / halflife / FRAMERATE;
+  let wm = -Math.log(2) / warmup / FRAMERATE;
+  for(let i = 0; i < num_samples; i++) {
+    let amp = Math.floor(vol * (1 - Math.exp(wm * i)) * Math.exp(att * i) * Math.sin(angfreq * i));
+    if (amp > 0x7fff) amp = 0x7fff;
+    if (amp < -0x8000) amp = -0x8000;
+    let frame = encode_sint16(amp);
+    output += frame + frame;
+  }
+
+  return "data:audio/wav;base64," + btoa(output);
+}
+
+function loop() {
+  let i = Object.keys(audios).length;
+  const K="zsxdcvgbhnjmq2w3er5t6y7ui9o0p";
+  const X=[0, .5, 1, 1.5, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6, 0, .5, 1, 1.5, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 7.5, 8, 8.5, 9];
+  const Y=[0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 2, 3, 2, 3, 2, 2, 3, 2, 3, 2, 3, 2, 2, 3, 2, 3, 2];
+  const W=canvas.width/10;
+  const H=canvas.height/4;
+  if (i < K.length) {
+    //console.log("Generating sample" + i + " (" + K[i] + ")")
+    let gen = generate_audio(i);
+    audios[K[i]] = {
+      audio: [
+        new Audio(gen),
+        new Audio(gen),
+        new Audio(gen),
+        new Audio(gen)],
+      use_audio: 0,
+      x: W*X[i],
+      y: canvas.height-H*(Y[i]+1),
+      w: W,
+      h: H,
+      pressed: false
+    };
+  }
+
+  // Draw keys
+  for (let k in audios) {
+    let v = audios[k];
+    ctx.fillStyle = v.pressed ? "#80ffff" : "#8080ff";
+    ctx.fillRect(v.x, v.y, v.w, v.h);
+    ctx.beginPath();
+    ctx.rect(v.x, v.y, v.w, v.h);
+    ctx.stroke();
+  }
+}
+
+function touchstart(e) {
+  let t = e.changedTouches[0];
+  let x = t.pageX;
+  let y = t.pageY;
+  for (let k in audios) {
+    let v = audios[k];
+    if (x >= v.x && x < v.x + v.w &&
+        y >= v.y && y < v.y + v.h) {
+      play(v);
+    }
+  }
+}
+
+function touchend(e) {
+  let t = e.changedTouches;
+  for (let i = 0; i < t.length; i++) {
+    let x = t[i].pageX;
+    let y = t[i].pageY;
+    for (let k in audios) {
+      let v = audios[k];
+      if (x >= v.x && x < v.x + v.w &&
+          y >= v.y && y < v.y + v.h) {
+        stop(v);
+      }
+    }
+  }
+}
+
+function initialize() {
+  canvas = document.getElementById("canvas");
+  ctx = canvas.getContext("2d");
+  canvas.addEventListener("touchstart", touchstart, false)
+  canvas.addEventListener("touchend", touchend, false)
+  canvas.addEventListener("touchcancel", touchend, false)
+  setInterval(loop, 30);
+}
+
+</script>
+<canvas id="canvas" style="background-color:#f0f0f0" width=400 height=200></canvas>
+</body>
+</html>
